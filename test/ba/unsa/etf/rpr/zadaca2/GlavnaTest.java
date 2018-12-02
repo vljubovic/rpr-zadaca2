@@ -2,6 +2,7 @@ package ba.unsa.etf.rpr.zadaca2;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -21,6 +22,12 @@ import org.testfx.api.FxRobot;
 import org.testfx.framework.junit5.ApplicationExtension;
 import org.testfx.framework.junit5.Start;
 
+import java.io.File;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,6 +36,7 @@ import java.util.List;
 class GlavnaTest {
     Stage theStage;
     BibliotekaModel model;
+    GlavnaController controller;
 
     @Start
     public void start (Stage stage) throws Exception {
@@ -36,7 +44,8 @@ class GlavnaTest {
         model.napuni();
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("glavna.fxml"));
-        loader.setController(new GlavnaController(model));
+        controller = new GlavnaController(model);
+        loader.setController(controller);
         Parent root = loader.load();
         stage.setTitle("Biblioteka");
         stage.setScene(new Scene(root, 600, 500));
@@ -64,15 +73,217 @@ class GlavnaTest {
     }
 
     @Test
+    public void testSave (FxRobot robot) {
+        // Fiksiramo jedan datum da ga možemo provjeriti
+        model.getKnjige().get(0).setDatumIzdanja(LocalDate.of(2000, Month.DECEMBER, 1));
+
+        File test = new File("test.xml");
+        controller.doSave(test);
+        try {
+            String content = new String(Files.readAllBytes(Paths.get(test.getPath())));
+
+            assertTrue(content.contains("<knjiga brojStranica=\"500\">"));
+            assertTrue(content.contains("<autor>Meša Selimović</autor>"));
+            assertTrue(content.contains("<naslov>Harry Potter</naslov>"));
+            assertTrue(content.contains("<datum>01. 12. 2000</datum>"));
+        } catch(Exception e) {
+            fail("Nije uspjelo čitanje datoteke");
+        }
+    }
+
+    @Test
+    public void testSave2 (FxRobot robot) {
+        model.getKnjige().clear();
+        File test = new File("test.xml");
+        controller.doSave(test);
+        try {
+            String content = new String(Files.readAllBytes(Paths.get(test.getPath())));
+            String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><biblioteka/>";
+
+            assertEquals(expected, content);
+        } catch(Exception e) {
+            fail("Nije uspjelo čitanje datoteke");
+        }
+    }
+
+    @Test
     public void testOpen (FxRobot robot) {
-        robot.clickOn("#tabelaKnjiga");
-        robot.press(KeyCode.ALT).press(KeyCode.F).release(KeyCode.F).press(KeyCode.O).release(KeyCode.O).release(KeyCode.ALT);
+        String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";
+        content += "<biblioteka>";
+        content += "<knjiga brojStranica=\"1\"><autor>A</autor><naslov>B</naslov><isbn>C</isbn><datum>20. 12. 2018</datum></knjiga>";
+        content += "<knjiga brojStranica=\"2\"><autor>X</autor><naslov>Y</naslov><isbn>Z</isbn><datum>30. 01. 1910</datum></knjiga>";
+        content += "</biblioteka>";
+
+        try {
+            PrintWriter out = new PrintWriter("test.xml");
+            out.print(content);
+            out.close();
+        } catch(Exception e) {
+            // Ne bi se nikada trebalo desiti
+        }
+
+        File test = new File("test.xml");
+        controller.doOpen(test);
+
+        assertEquals(2, model.getKnjige().size());
+        assertEquals(2, model.getKnjige().get(1).getBrojStranica());
+        assertEquals("Y", model.getKnjige().get(1).getNaslov());
+        assertEquals("A", model.getKnjige().get(0).getAutor());
+        assertEquals("C", model.getKnjige().get(0).getIsbn());
+    }
+
+    @Test
+    public void testOpen2 (FxRobot robot) {
+        String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";
+        content += "<biblioteka>";
+        content += "</biblioteka>";
+
+        try {
+            PrintWriter out = new PrintWriter("test.xml");
+            out.print(content);
+            out.close();
+        } catch(Exception e) {
+            // Ne bi se nikada trebalo desiti
+        }
+
+        File test = new File("test.xml");
+        controller.doOpen(test);
+
+        assertEquals(0, model.getKnjige().size());
+    }
+
+    @Test
+    public void testOpen3 (FxRobot robot) {
+        int brojKnjiga = model.getKnjige().size();
+
+        String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";
+        content += "<videoteka>";
+        content += "<knjiga brojStranica=\"1\"><autor>A</autor><naslov>B</naslov><isbn>C</isbn><datum>20. 12. 2018</datum></knjiga>";
+        content += "<knjiga brojStranica=\"2\"><autor>X</autor><naslov>Y</naslov><isbn>Z</isbn><datum>30. 1. 1910</datum></knjiga>";
+        content += "</videoteka>";
+
+        try {
+            PrintWriter out = new PrintWriter("test.xml");
+            out.print(content);
+            out.close();
+        } catch(Exception e) {
+            // Ne bi se nikada trebalo desiti
+        }
+
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                File test = new File("test.xml");
+                controller.doOpen(test);
+            }
+        });
+
+        // Čekamo da se pojavi dijalog
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         // Čekamo da dijalog postane vidljiv
         robot.lookup(".dialog-pane").tryQuery().isPresent();
 
         DialogPane dialogPane = robot.lookup(".dialog-pane").queryAs(DialogPane.class);
-        assertEquals("Nije implementirano", dialogPane.getHeaderText());
+        assertEquals("Neispravan format datoteke", dialogPane.getHeaderText());
+
+        assertEquals(brojKnjiga, model.getKnjige().size());
+
+        // Zatvaramo dijalog zbog ostalih testova
+        Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
+        robot.clickOn(okButton);
+    }
+
+    @Test
+    public void testOpen4 (FxRobot robot) {
+        int brojKnjiga = model.getKnjige().size();
+
+        String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";
+        content += "<videoteka>";
+        content += "<knjiga brojStranica=\"1\"><visak /><autor>A</autor><naslov>B</naslov><isbn>C</isbn><datum>20. 12. 2018</datum></knjiga>";
+        content += "<knjiga brojStranica=\"2\"><autor>X</autor><naslov>Y</naslov><isbn>Z</isbn><datum>30. 1. 1910</datum></knjiga>";
+        content += "</videoteka>";
+
+        try {
+            PrintWriter out = new PrintWriter("test.xml");
+            out.print(content);
+            out.close();
+        } catch(Exception e) {
+            // Ne bi se nikada trebalo desiti
+        }
+
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                File test = new File("test.xml");
+                controller.doOpen(test);
+            }
+        });
+
+        // Čekamo da se pojavi dijalog
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Čekamo da dijalog postane vidljiv
+        robot.lookup(".dialog-pane").tryQuery().isPresent();
+
+        DialogPane dialogPane = robot.lookup(".dialog-pane").queryAs(DialogPane.class);
+        assertEquals("Neispravan format datoteke", dialogPane.getHeaderText());
+
+        assertEquals(brojKnjiga, model.getKnjige().size());
+
+        // Zatvaramo dijalog zbog ostalih testova
+        Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
+        robot.clickOn(okButton);
+    }
+
+    @Test
+    public void testOpen5 (FxRobot robot) {
+        int brojKnjiga = model.getKnjige().size();
+
+        String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";
+        content += "<videoteka>";
+        content += "<knjiga brojStranica=\"1\"><naslov>B</naslov><isbn>C</isbn><datum>20. 12. 2018</datum></knjiga>";
+        content += "<knjiga brojStranica=\"2\"><autor>X</autor><naslov>Y</naslov><isbn>Z</isbn><datum>30. 1. 1910</datum></knjiga>";
+        content += "</videoteka>";
+
+        try {
+            PrintWriter out = new PrintWriter("test.xml");
+            out.print(content);
+            out.close();
+        } catch(Exception e) {
+            // Ne bi se nikada trebalo desiti
+        }
+
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                File test = new File("test.xml");
+                controller.doOpen(test);
+            }
+        });
+
+        // Čekamo da se pojavi dijalog
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Čekamo da dijalog postane vidljiv
+        robot.lookup(".dialog-pane").tryQuery().isPresent();
+
+        DialogPane dialogPane = robot.lookup(".dialog-pane").queryAs(DialogPane.class);
+        assertEquals("Neispravan format datoteke", dialogPane.getHeaderText());
+
+        assertEquals(brojKnjiga, model.getKnjige().size());
 
         // Zatvaramo dijalog zbog ostalih testova
         Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
@@ -89,6 +300,7 @@ class GlavnaTest {
 
         // Edit > Delete
         robot.press(KeyCode.ALT).press(KeyCode.E).release(KeyCode.E).press(KeyCode.D).release(KeyCode.D).release(KeyCode.ALT);
+
 
         // Čekamo da dijalog postane vidljiv
         robot.lookup(".dialog-pane").tryQuery().isPresent();
