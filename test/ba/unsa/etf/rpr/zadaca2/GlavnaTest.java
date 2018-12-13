@@ -98,9 +98,9 @@ class GlavnaTest {
         controller.doSave(test);
         try {
             String content = new String(Files.readAllBytes(Paths.get(test.getPath())));
-            String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><biblioteka/>";
+            String expected = "<biblioteka/>";
 
-            assertEquals(expected, content);
+            assertTrue(content.contains(expected));
         } catch(Exception e) {
             fail("Nije uspjelo čitanje datoteke");
         }
