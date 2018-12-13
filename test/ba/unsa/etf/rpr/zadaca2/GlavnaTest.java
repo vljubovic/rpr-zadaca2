@@ -157,10 +157,10 @@ class GlavnaTest {
         int brojKnjiga = model.getKnjige().size();
 
         String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";
-        content += "<videoteka>";
+        content += "<biblioteka>";
         content += "<knjiga brojStranica=\"1\"><autor>A</autor><naslov>B</naslov><isbn>C</isbn><datum>20. 12. 2018</datum></knjiga>";
         content += "<knjiga brojStranica=\"2\"><autor>X</autor><naslov>Y</naslov><isbn>Z</isbn><datum>30. 1. 1910</datum></knjiga>";
-        content += "</videoteka>";
+        content += "</biblioteka>";
 
         try {
             PrintWriter out = new PrintWriter("test.xml");
@@ -203,10 +203,10 @@ class GlavnaTest {
         int brojKnjiga = model.getKnjige().size();
 
         String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";
-        content += "<videoteka>";
+        content += "<biblioteka>";
         content += "<knjiga brojStranica=\"1\"><visak /><autor>A</autor><naslov>B</naslov><isbn>C</isbn><datum>20. 12. 2018</datum></knjiga>";
         content += "<knjiga brojStranica=\"2\"><autor>X</autor><naslov>Y</naslov><isbn>Z</isbn><datum>30. 1. 1910</datum></knjiga>";
-        content += "</videoteka>";
+        content += "</biblioteka>";
 
         try {
             PrintWriter out = new PrintWriter("test.xml");
@@ -249,10 +249,10 @@ class GlavnaTest {
         int brojKnjiga = model.getKnjige().size();
 
         String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";
-        content += "<videoteka>";
+        content += "<biblioteka>";
         content += "<knjiga brojStranica=\"1\"><naslov>B</naslov><isbn>C</isbn><datum>20. 12. 2018</datum></knjiga>";
         content += "<knjiga brojStranica=\"2\"><autor>X</autor><naslov>Y</naslov><isbn>Z</isbn><datum>30. 1. 1910</datum></knjiga>";
-        content += "</videoteka>";
+        content += "</biblioteka>";
 
         try {
             PrintWriter out = new PrintWriter("test.xml");
