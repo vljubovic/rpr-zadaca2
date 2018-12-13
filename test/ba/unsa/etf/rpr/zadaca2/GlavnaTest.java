@@ -569,9 +569,11 @@ class GlavnaTest {
             if (bf.getFill().equals(yellowgreen))
                 colorFound = true;
 
-        // Unosimo i autora - sada je kompletna forma validna
+        // Unosimo i autora i isbn - sada je kompletna forma validna
         robot.clickOn("#knjigaAutor");
         robot.write("abc");
+        robot.clickOn("#knjigaIsbn");
+        robot.write("1234");
 
         // Zatvaramo prozor
         robot.press(KeyCode.ALT).press(KeyCode.F4).release(KeyCode.F4).release(KeyCode.ALT);
