@@ -38,7 +38,7 @@ class BibliotekaModelTest {
         Knjiga k = m.getKnjige().get(0);
         m.setTrenutnaKnjiga(k);
         m.deleteKnjiga();
-        String expected = "Meša Selimovic";
+        String expected = "Meša Selimović";
         assertFalse(m.dajKnjige().contains(expected));
     }
 
